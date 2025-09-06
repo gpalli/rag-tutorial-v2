@@ -36,27 +36,37 @@ def load_documents():
     pdf_documents = pdf_loader.load()
     documents.extend(pdf_documents)
     
-    # Load Markdown files
+    # Load Markdown files (recursively)
     md_loader = DirectoryLoader(
         DATA_PATH,
-        glob="*.md",
+        glob="**/*.md",
         loader_cls=TextLoader,
         loader_kwargs={'encoding': 'utf-8'}
     )
     md_documents = md_loader.load()
     documents.extend(md_documents)
     
-    # Load TXT files
+    # Load TXT files (recursively)
     txt_loader = DirectoryLoader(
         DATA_PATH,
-        glob="*.txt",
+        glob="**/*.txt",
         loader_cls=TextLoader,
         loader_kwargs={'encoding': 'utf-8'}
     )
     txt_documents = txt_loader.load()
     documents.extend(txt_documents)
     
-    print(f"Loaded {len(pdf_documents)} PDF documents, {len(md_documents)} Markdown documents, and {len(txt_documents)} TXT documents")
+    # Load RTF files (recursively)
+    rtf_loader = DirectoryLoader(
+        DATA_PATH,
+        glob="**/*.rtf",
+        loader_cls=TextLoader,
+        loader_kwargs={'encoding': 'utf-8'}
+    )
+    rtf_documents = rtf_loader.load()
+    documents.extend(rtf_documents)
+    
+    print(f"Loaded {len(pdf_documents)} PDF documents, {len(md_documents)} Markdown documents, {len(txt_documents)} TXT documents, and {len(rtf_documents)} RTF documents")
     return documents
 
 
