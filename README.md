@@ -12,22 +12,60 @@ A Retrieval-Augmented Generation (RAG) system that can load and query PDF, Markd
 
 ## Prerequisites
 
-- Python 3.8+
+- Python 3.8+ (recommended: Python 3.10)
+- [pyenv](https://github.com/pyenv/pyenv) (recommended for Python version management)
 - [Ollama](https://ollama.ai) installed
 - Mistral model downloaded
 
 ## Installation
 
-1. **Install Python dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+### 1. Python Environment Setup
 
-2. **Install Ollama and download Mistral model**:
-   ```bash
-   # Install Ollama from https://ollama.ai
-   ollama pull mistral
-   ```
+**Option A: Using pyenv (Recommended)**
+```bash
+# Install pyenv if not already installed
+# Follow instructions at https://github.com/pyenv/pyenv#installation
+
+# Install Python 3.10.0
+pyenv install 3.10.0
+
+# Set local Python version for this project
+pyenv local 3.10.0
+
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate  # On macOS/Linux
+# or
+venv\Scripts\activate     # On Windows
+```
+
+**Option B: Using system Python**
+```bash
+# Create virtual environment
+python3 -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate  # On macOS/Linux
+# or
+venv\Scripts\activate     # On Windows
+```
+
+### 2. Install Python Dependencies
+
+```bash
+# Make sure virtual environment is activated
+pip install -r requirements.txt
+```
+
+### 3. Install Ollama and Download Mistral Model
+
+```bash
+# Install Ollama from https://ollama.ai
+# Then download the Mistral model
+ollama pull mistral
+```
 
 ## Usage
 
@@ -87,19 +125,24 @@ rag-tutorial-v2/
 ## Example Workflow
 
 ```bash
-# 1. Install dependencies
+# 1. Set up Python environment (if using pyenv)
+pyenv local 3.10.0
+python -m venv venv
+source venv/bin/activate
+
+# 2. Install dependencies
 pip install -r requirements.txt
 
-# 2. Install Ollama and Mistral model
+# 3. Install Ollama and Mistral model
 ollama pull mistral
 
-# 3. Add your documents to the data/ directory
-# (PDF, .md, or .txt files)
+# 4. Add your documents to the data/ directory
+# (PDF, .md, .txt, or .rtf files)
 
-# 4. Populate database
+# 5. Populate database
 python populate_database.py --reset
 
-# 5. Query the system
+# 6. Query the system
 python query_data.py "What are the rules for Monopoly?"
 python query_data.py "How many points does the longest train get in Ticket to Ride?"
 ```
