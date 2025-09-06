@@ -36,17 +36,27 @@ def load_documents():
     pdf_documents = pdf_loader.load()
     documents.extend(pdf_documents)
     
-    # Load Markdown and TXT files using a single DirectoryLoader
-    text_loader = DirectoryLoader(
+    # Load Markdown files
+    md_loader = DirectoryLoader(
         DATA_PATH,
-        glob="**/*.{md,txt}",
+        glob="*.md",
         loader_cls=TextLoader,
         loader_kwargs={'encoding': 'utf-8'}
     )
-    text_documents = text_loader.load()
-    documents.extend(text_documents)
+    md_documents = md_loader.load()
+    documents.extend(md_documents)
     
-    print(f"Loaded {len(pdf_documents)} PDF documents and {len(text_documents)} text documents (MD/TXT)")
+    # Load TXT files
+    txt_loader = DirectoryLoader(
+        DATA_PATH,
+        glob="*.txt",
+        loader_cls=TextLoader,
+        loader_kwargs={'encoding': 'utf-8'}
+    )
+    txt_documents = txt_loader.load()
+    documents.extend(txt_documents)
+    
+    print(f"Loaded {len(pdf_documents)} PDF documents, {len(md_documents)} Markdown documents, and {len(txt_documents)} TXT documents")
     return documents
 
 
