@@ -23,13 +23,15 @@ def test_ticket_to_ride_rules():
     )
 
 
-def query_and_validate(question: str, expected_response: str):
-    response_text = query_rag(question)
+def query_and_validate(question: str, expected_response: str, 
+                      provider: str = "ollama", model: str = None, 
+                      llm_model: str = "mistral", **kwargs):
+    response_text = query_rag(question, provider, model, llm_model, **kwargs)
     prompt = EVAL_PROMPT.format(
         expected_response=expected_response, actual_response=response_text
     )
 
-    model = OllamaLLM(model="mistral")
+    model = OllamaLLM(model=llm_model)
     evaluation_results_str = model.invoke(prompt)
     evaluation_results_str_cleaned = evaluation_results_str.strip().lower()
 

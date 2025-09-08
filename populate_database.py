@@ -15,17 +15,52 @@ DATA_PATH = "data"
 def main():
 
     # Check if the database should be cleared (using the --clear flag).
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Populate the vector database with documents")
     parser.add_argument("--reset", action="store_true", help="Reset the database.")
+    parser.add_argument("--provider", type=str, default="ollama", 
+                       choices=["ollama", "openai", "huggingface", "bedrock", "sentence_transformers"],
+                       help="Embedding provider to use")
+    parser.add_argument("--model", type=str, default=None,
+                       help="Specific embedding model to use (uses default for provider if not specified)")
+    parser.add_argument("--ollama-url", type=str, default="http://localhost:11434",
+                       help="Ollama base URL (only used with ollama provider)")
+    parser.add_argument("--openai-key", type=str, default=None,
+                       help="OpenAI API key (only used with openai provider)")
+    parser.add_argument("--hf-key", type=str, default=None,
+                       help="Hugging Face API key (only used with huggingface provider)")
+    parser.add_argument("--aws-profile", type=str, default="default",
+                       help="AWS profile name (only used with bedrock provider)")
+    parser.add_argument("--aws-region", type=str, default="us-east-1",
+                       help="AWS region (only used with bedrock provider)")
+    
     args = parser.parse_args()
+    
     if args.reset:
         print("✨ Clearing Database")
         clear_database()
 
+    # Prepare embedding configuration
+    embedding_kwargs = {}
+    if args.provider == "ollama":
+        embedding_kwargs["ollama_base_url"] = args.ollama_url
+    elif args.provider == "openai":
+        embedding_kwargs["openai_api_key"] = args.openai_key
+    elif args.provider == "huggingface":
+        embedding_kwargs["hf_api_key"] = args.hf_key
+    elif args.provider == "bedrock":
+        embedding_kwargs["aws_profile"] = args.aws_profile
+        embedding_kwargs["aws_region"] = args.aws_region
+
+    print(f"🔧 Using embedding provider: {args.provider}")
+    if args.model:
+        print(f"🔧 Using model: {args.model}")
+    else:
+        print(f"🔧 Using default model for {args.provider}")
+
     # Create (or update) the data store.
     documents = load_documents()
     chunks = split_documents(documents)
-    add_to_chroma(chunks)
+    add_to_chroma(chunks, args.provider, args.model, **embedding_kwargs)
 
 
 def load_documents():
@@ -80,10 +115,10 @@ def split_documents(documents: list[Document]):
     return text_splitter.split_documents(documents)
 
 
-def add_to_chroma(chunks: list[Document]):
+def add_to_chroma(chunks: list[Document], provider: str = "ollama", model: str = None, **kwargs):
     # Load the existing database.
     db = Chroma(
-        persist_directory=CHROMA_PATH, embedding_function=get_embedding_function()
+        persist_directory=CHROMA_PATH, embedding_function=get_embedding_function(provider, model, **kwargs)
     )
 
     # Calculate Page IDs.
