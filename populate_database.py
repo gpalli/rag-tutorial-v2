@@ -4,12 +4,17 @@ import shutil
 from langchain_community.document_loaders import PyPDFDirectoryLoader, DirectoryLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
-from get_embedding_function import get_embedding_function
+from get_embedding_function import get_embedding_function, get_embedding_function_from_config
 from langchain_chroma import Chroma
+from config_loader import get_database_config, get_documents_config, get_embedding_config
 
 
-CHROMA_PATH = "chroma"
-DATA_PATH = "data"
+# Load configuration from config.yaml
+db_config = get_database_config()
+doc_config = get_documents_config()
+
+CHROMA_PATH = db_config.get("chroma_path", "chroma")
+DATA_PATH = db_config.get("data_path", "data")
 
 
 def main():
@@ -17,21 +22,23 @@ def main():
     # Check if the database should be cleared (using the --clear flag).
     parser = argparse.ArgumentParser(description="Populate the vector database with documents")
     parser.add_argument("--reset", action="store_true", help="Reset the database.")
-    parser.add_argument("--provider", type=str, default="ollama", 
+    parser.add_argument("--use-config", action="store_true", default=True,
+                       help="Use configuration from config.yaml (default)")
+    parser.add_argument("--provider", type=str, default=None, 
                        choices=["ollama", "openai", "huggingface", "bedrock", "sentence_transformers"],
-                       help="Embedding provider to use")
+                       help="Embedding provider to use (overrides config.yaml)")
     parser.add_argument("--model", type=str, default=None,
-                       help="Specific embedding model to use (uses default for provider if not specified)")
-    parser.add_argument("--ollama-url", type=str, default="http://localhost:11434",
-                       help="Ollama base URL (only used with ollama provider)")
+                       help="Specific embedding model to use (overrides config.yaml)")
+    parser.add_argument("--ollama-url", type=str, default=None,
+                       help="Ollama base URL (overrides config.yaml)")
     parser.add_argument("--openai-key", type=str, default=None,
-                       help="OpenAI API key (only used with openai provider)")
+                       help="OpenAI API key (overrides config.yaml)")
     parser.add_argument("--hf-key", type=str, default=None,
-                       help="Hugging Face API key (only used with huggingface provider)")
-    parser.add_argument("--aws-profile", type=str, default="default",
-                       help="AWS profile name (only used with bedrock provider)")
-    parser.add_argument("--aws-region", type=str, default="us-east-1",
-                       help="AWS region (only used with bedrock provider)")
+                       help="Hugging Face API key (overrides config.yaml)")
+    parser.add_argument("--aws-profile", type=str, default=None,
+                       help="AWS profile name (overrides config.yaml)")
+    parser.add_argument("--aws-region", type=str, default=None,
+                       help="AWS region (overrides config.yaml)")
     
     args = parser.parse_args()
     
@@ -40,27 +47,60 @@ def main():
         clear_database()
 
     # Prepare embedding configuration
-    embedding_kwargs = {}
-    if args.provider == "ollama":
-        embedding_kwargs["ollama_base_url"] = args.ollama_url
-    elif args.provider == "openai":
-        embedding_kwargs["openai_api_key"] = args.openai_key
-    elif args.provider == "huggingface":
-        embedding_kwargs["hf_api_key"] = args.hf_key
-    elif args.provider == "bedrock":
-        embedding_kwargs["aws_profile"] = args.aws_profile
-        embedding_kwargs["aws_region"] = args.aws_region
-
-    print(f"🔧 Using embedding provider: {args.provider}")
-    if args.model:
-        print(f"🔧 Using model: {args.model}")
+    if args.use_config:
+        # Use config.yaml as primary source
+        embedding_function = get_embedding_function_from_config()
+        
+        # Override with command line arguments if provided
+        if args.provider or args.model or any([args.ollama_url, args.openai_key, args.hf_key, args.aws_profile, args.aws_region]):
+            embedding_kwargs = {}
+            provider = args.provider
+            model = args.model
+            
+            if args.provider == "ollama":
+                embedding_kwargs["ollama_base_url"] = args.ollama_url
+            elif args.provider == "openai":
+                embedding_kwargs["openai_api_key"] = args.openai_key
+            elif args.provider == "huggingface":
+                embedding_kwargs["hf_api_key"] = args.hf_key
+            elif args.provider == "bedrock":
+                embedding_kwargs["aws_profile"] = args.aws_profile
+                embedding_kwargs["aws_region"] = args.aws_region
+            
+            if provider or model or embedding_kwargs:
+                # If only model is provided, use the provider from config
+                if not provider:
+                    config = get_embedding_config()
+                    provider = config.get("provider", "ollama")
+                embedding_function = get_embedding_function(provider, model, **embedding_kwargs)
     else:
-        print(f"🔧 Using default model for {args.provider}")
+        # Use command line arguments only
+        embedding_kwargs = {}
+        if args.provider == "ollama":
+            embedding_kwargs["ollama_base_url"] = args.ollama_url
+        elif args.provider == "openai":
+            embedding_kwargs["openai_api_key"] = args.openai_key
+        elif args.provider == "huggingface":
+            embedding_kwargs["hf_api_key"] = args.hf_key
+        elif args.provider == "bedrock":
+            embedding_kwargs["aws_profile"] = args.aws_profile
+            embedding_kwargs["aws_region"] = args.aws_region
+        
+        embedding_function = get_embedding_function(args.provider, args.model, **embedding_kwargs)
+
+    # Get provider and model info for display
+    if hasattr(embedding_function, 'model_name'):
+        model_name = embedding_function.model_name
+    else:
+        model_name = "Unknown"
+    
+    print(f"🔧 Using embedding function: {type(embedding_function).__name__}")
+    print(f"🔧 Using model: {model_name}")
 
     # Create (or update) the data store.
     documents = load_documents()
     chunks = split_documents(documents)
-    add_to_chroma(chunks, args.provider, args.model, **embedding_kwargs)
+    add_to_chroma(chunks, embedding_function)
 
 
 def load_documents():
@@ -107,18 +147,18 @@ def load_documents():
 
 def split_documents(documents: list[Document]):
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=800,
-        chunk_overlap=80,
+        chunk_size=doc_config.get("chunk_size", 800),
+        chunk_overlap=doc_config.get("chunk_overlap", 80),
         length_function=len,
         is_separator_regex=False,
     )
     return text_splitter.split_documents(documents)
 
 
-def add_to_chroma(chunks: list[Document], provider: str = "ollama", model: str = None, **kwargs):
+def add_to_chroma(chunks: list[Document], embedding_function):
     # Load the existing database.
     db = Chroma(
-        persist_directory=CHROMA_PATH, embedding_function=get_embedding_function(provider, model, **kwargs)
+        persist_directory=CHROMA_PATH, embedding_function=embedding_function
     )
 
     # Calculate Page IDs.

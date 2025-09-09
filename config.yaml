@@ -1,41 +1,44 @@
-# RAG System Configuration
-# This file contains default configurations for different embedding models and providers
-
-# Default embedding configuration
+database:
+  chroma_path: chroma
+  data_path: data
+documents:
+  chunk_overlap: 80
+  chunk_size: 800
+  supported_formats:
+  - pdf
+  - md
+  - txt
+  - rtf
 embedding:
-  provider: "ollama"  # ollama, openai, huggingface, bedrock, sentence_transformers
-  model: null  # null means use default for provider
+  bedrock:
+    aws_profile: default
+    aws_region: us-east-1
+    model: amazon.titan-embed-text-v1
+  huggingface:
+    api_key: ''
+    cache_dir: ./cache
+    model: sentence-transformers/all-MiniLM-L6-v2
+  model: nomic-embed-text
   ollama:
-    base_url: "http://localhost:11434"
+    base_url: http://localhost:11434
     timeout: 120
   openai:
-    api_key: null  # Set via environment variable OPENAI_API_KEY
-  huggingface:
-    api_key: null  # Set via environment variable HUGGINGFACE_API_KEY
-    cache_dir: "./cache"
-  bedrock:
-    aws_profile: "default"
-    aws_region: "us-east-1"
-
-# Default LLM configuration
+    api_key: ''
+    model: text-embedding-3-small
+  provider: ollama
 llm:
-  provider: "ollama"
-  model: "mistral"
+  max_tokens: 2048
+  model: llama3.1:latest
   ollama:
-    base_url: "http://localhost:11434"
-
-# Database configuration
-database:
-  chroma_path: "chroma"
-  data_path: "data"
-
-# Document processing configuration
-documents:
-  chunk_size: 800
-  chunk_overlap: 80
-  supported_formats: ["pdf", "md", "txt", "rtf"]
-
-# Query configuration
+    base_url: http://localhost:11434
+  openai:
+    api_key: ''
+    model: gpt-3.5-turbo
+  provider: ollama
+  temperature: 0.1
+logging:
+  level: INFO
+  suppress_http: true
 query:
   max_results: 5
   similarity_threshold: 0.0

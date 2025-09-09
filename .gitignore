@@ -29,7 +29,9 @@ ENV/
 env.bak/
 venv.bak/
 .venv/
-.env/
+
+# Python version management
+.python-version
 
 # IDE
 .vscode/
@@ -63,4 +65,4 @@ htmlcov/
 # mypy
 .mypy_cache/
 .dmypy.json
-dmypy.json
+dmypy.jsoncache/

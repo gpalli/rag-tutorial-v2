@@ -1,5 +1,25 @@
 # Changelog
 
+## Version 2.1 - Configuration System Migration
+
+### Major Changes
+
+- **Migrated from .env to config.yaml**: All configuration now uses YAML format
+- **Enhanced Error Handling**: Better error messages for missing models and configuration issues
+- **Improved Logging**: Suppressed verbose HTTP and ChromaDB telemetry logs
+- **Configuration Management**: Centralized configuration loading and validation
+
+### New Features
+
+- **config_loader.py**: Centralized configuration management system
+- **Enhanced Error Handling**: Clear error messages for missing models and configuration issues
+- **Logging Improvements**: Cleaner output with suppressed verbose logs
+
+### Breaking Changes
+
+- **Removed .env support**: All configuration now uses config.yaml
+- **Updated embedding_manager.py**: Now updates config.yaml instead of creating .env files
+
 ## Version 2.0 - Multi-Provider Embedding Support
 
 ### New Features
@@ -13,18 +33,18 @@
 
 - **Flexible Model Selection**: Easy switching between different embedding models via:
   - Command-line arguments
-  - Environment variables
-  - Configuration files
+  - YAML configuration file
+  - Configuration management tools
 
 - **Embedding Manager**: New utility script (`embedding_manager.py`) for:
   - Listing available models
   - Testing embedding configurations
-  - Setting up environment variables
+  - Updating configuration files
 
 - **Enhanced Configuration**: 
   - `embedding_config.py` - Centralized model configurations
-  - `config.yaml` - YAML configuration file
-  - Environment variable support
+  - `config.yaml` - YAML configuration file (primary configuration)
+  - `config_loader.py` - Configuration management system
 
 ### New Files
 
@@ -85,10 +105,12 @@ python3 populate_database.py --reset --provider ollama --model nomic-embed-text
 python3 query_data.py "Your question" --provider ollama --model nomic-embed-text
 ```
 
-#### Environment Variables
+#### Configuration Management
 ```bash
-export EMBEDDING_PROVIDER=ollama
-export EMBEDDING_MODEL=nomic-embed-text
+# Update configuration
+python3 embedding_manager.py setup --provider ollama --model nomic-embed-text
+
+# Use with configuration
 python3 populate_database.py --reset
 python3 query_data.py "Your question"
 ```
@@ -111,5 +133,5 @@ python3 query_data.py "Your question"
 No migration required! The system is fully backward compatible. To use new features:
 
 1. Install new dependencies: `pip install -r requirements.txt`
-2. Use new command-line options or environment variables
+2. Configure your settings in `config.yaml` or use `python3 embedding_manager.py setup`
 3. Explore available models: `python3 embedding_manager.py list`

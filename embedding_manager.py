@@ -75,38 +75,61 @@ def test_embedding(provider: str, model: str = None, **kwargs):
     return True
 
 
-def setup_environment(provider: str, model: str = None, **kwargs):
-    """Set up environment variables for the specified configuration."""
-    env_vars = {
-        "EMBEDDING_PROVIDER": provider,
-    }
+def update_config(provider: str, model: str = None, **kwargs):
+    """Update config.yaml with the specified configuration."""
+    import yaml
     
+    # Load existing config
+    try:
+        with open("config.yaml", "r") as f:
+            config = yaml.safe_load(f)
+    except FileNotFoundError:
+        config = {}
+    
+    # Ensure structure exists
+    if "embedding" not in config:
+        config["embedding"] = {}
+    
+    # Update embedding configuration
+    config["embedding"]["provider"] = provider
     if model:
-        env_vars["EMBEDDING_MODEL"] = model
+        config["embedding"]["model"] = model
     
-    # Provider-specific environment variables
-    if provider == "openai" and "openai_api_key" in kwargs:
-        env_vars["OPENAI_API_KEY"] = kwargs["openai_api_key"]
-    elif provider == "huggingface" and "hf_api_key" in kwargs:
-        env_vars["HUGGINGFACE_API_KEY"] = kwargs["hf_api_key"]
+    # Provider-specific configuration
+    if provider == "openai":
+        if "openai" not in config["embedding"]:
+            config["embedding"]["openai"] = {}
+        if "openai_api_key" in kwargs:
+            config["embedding"]["openai"]["api_key"] = kwargs["openai_api_key"]
+    elif provider == "huggingface":
+        if "huggingface" not in config["embedding"]:
+            config["embedding"]["huggingface"] = {}
+        if "hf_api_key" in kwargs:
+            config["embedding"]["huggingface"]["api_key"] = kwargs["hf_api_key"]
     elif provider == "bedrock":
-        env_vars["AWS_PROFILE"] = kwargs.get("aws_profile", "default")
-        env_vars["AWS_REGION"] = kwargs.get("aws_region", "us-east-1")
+        if "bedrock" not in config["embedding"]:
+            config["embedding"]["bedrock"] = {}
+        config["embedding"]["bedrock"]["aws_profile"] = kwargs.get("aws_profile", "default")
+        config["embedding"]["bedrock"]["aws_region"] = kwargs.get("aws_region", "us-east-1")
     elif provider == "ollama":
-        env_vars["OLLAMA_BASE_URL"] = kwargs.get("ollama_base_url", "http://localhost:11434")
-        env_vars["OLLAMA_TIMEOUT"] = str(kwargs.get("ollama_timeout", 120))
+        if "ollama" not in config["embedding"]:
+            config["embedding"]["ollama"] = {}
+        config["embedding"]["ollama"]["base_url"] = kwargs.get("ollama_base_url", "http://localhost:11434")
+        config["embedding"]["ollama"]["timeout"] = kwargs.get("ollama_timeout", 120)
     
-    print("Environment variables to set:")
+    # Write updated config
+    with open("config.yaml", "w") as f:
+        yaml.dump(config, f, default_flow_style=False, indent=2)
+    
+    print("Configuration updated in config.yaml:")
     print("=" * 40)
-    for key, value in env_vars.items():
-        print(f"export {key}='{value}'")
+    print(f"Provider: {provider}")
+    if model:
+        print(f"Model: {model}")
+    for key, value in kwargs.items():
+        print(f"{key}: {value}")
     
-    # Create .env file
-    with open(".env", "w") as f:
-        for key, value in env_vars.items():
-            f.write(f"{key}={value}\n")
-    
-    print(f"\n✅ Environment variables written to .env file")
+    print(f"\n✅ Configuration written to config.yaml")
 
 
 def main():
@@ -128,7 +151,7 @@ def main():
     test_parser.add_argument("--ollama-url", type=str, default="http://localhost:11434", help="Ollama base URL")
     
     # Setup command
-    setup_parser = subparsers.add_parser("setup", help="Set up environment for a model")
+    setup_parser = subparsers.add_parser("setup", help="Set up configuration for a model")
     setup_parser.add_argument("--provider", type=str, required=True, help="Provider to set up")
     setup_parser.add_argument("--model", type=str, help="Model to set up (uses default if not specified)")
     setup_parser.add_argument("--openai-key", type=str, help="OpenAI API key")
@@ -170,7 +193,7 @@ def main():
         if args.ollama_url:
             kwargs["ollama_base_url"] = args.ollama_url
         
-        setup_environment(args.provider, args.model, **kwargs)
+        update_config(args.provider, args.model, **kwargs)
     
     else:
         parser.print_help()

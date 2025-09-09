@@ -11,7 +11,7 @@ A flexible Retrieval-Augmented Generation (RAG) system that supports multiple em
 - **Local LLM**: Powered by Ollama with configurable models
 - **Chunking**: Intelligent text splitting for better retrieval
 - **Source attribution**: Shows which documents were used for answers
-- **Environment-based configuration**: Easy setup via environment variables
+- **YAML-based configuration**: Easy setup via config.yaml file
 
 ## Prerequisites
 
@@ -71,20 +71,35 @@ ollama pull nomic-embed-text  # Embedding model
 ollama pull mistral          # LLM model
 ```
 
-### 4. Set Up API Keys (Optional)
+### 4. Configure API Keys (Optional)
 
-For cloud-based embedding providers, set up your API keys:
+For cloud-based embedding providers, you can configure your API keys in the `config.yaml` file:
+
+#### Option A: Using Embedding Manager (Recommended)
+
+Use the embedding manager to automatically update `config.yaml` with your API keys:
 
 ```bash
 # OpenAI
-export OPENAI_API_KEY="your-openai-api-key"
+python embedding_manager.py setup --provider openai --model text-embedding-3-small --openai-key your-api-key
 
 # Hugging Face
-export HUGGINGFACE_API_KEY="your-hf-api-key"
+python embedding_manager.py setup --provider huggingface --model sentence-transformers/all-MiniLM-L6-v2 --hf-key your-api-key
 
-# AWS (for Bedrock)
-export AWS_PROFILE="your-aws-profile"
-export AWS_REGION="us-east-1"
+# AWS Bedrock
+python embedding_manager.py setup --provider bedrock --aws-profile your-profile --aws-region us-east-1
+```
+
+#### Option B: Manual Configuration
+
+Alternatively, edit `config.yaml` directly:
+
+```yaml
+embedding:
+  provider: "openai"
+  model: "text-embedding-3-small"
+  openai:
+    api_key: "your-openai-api-key"
 ```
 
 ## Usage
@@ -103,7 +118,7 @@ python embedding_manager.py list --provider ollama
 # Test a specific model
 python embedding_manager.py test --provider ollama --model nomic-embed-text
 
-# Set up environment for a model
+# Set up configuration for a model
 python embedding_manager.py setup --provider ollama --model nomic-embed-text
 ```
 
@@ -121,9 +136,7 @@ python populate_database.py --reset --provider openai --model text-embedding-3-s
 # Using Hugging Face
 python populate_database.py --reset --provider huggingface --model sentence-transformers/all-MiniLM-L6-v2
 
-# Using environment variables
-export EMBEDDING_PROVIDER=ollama
-export EMBEDDING_MODEL=nomic-embed-text
+# Using config.yaml (default)
 python populate_database.py --reset
 ```
 
@@ -182,10 +195,11 @@ rag-tutorial-v2/
 ├── get_embedding_function.py  # Embedding function factory
 ├── embedding_config.py     # Embedding model configurations
 ├── embedding_manager.py    # Utility for managing embedding models
-├── config.yaml            # Configuration file
+├── config.yaml            # Configuration file (edit to customize settings)
 ├── requirements.txt       # Python dependencies
-└── .env                   # Environment variables (created by setup)
 ```
+
+> **Note**: The `config.yaml` file contains all configuration settings including API keys. Edit this file to customize your setup.
 
 ## Supported Embedding Providers
 
@@ -265,18 +279,59 @@ python populate_database.py --reset --provider huggingface --model sentence-tran
 python query_data.py "Your question" --provider huggingface --model sentence-transformers/all-MiniLM-L6-v2
 ```
 
-### Environment-Based Configuration
+### Configuration Management
+
+The project uses `config.yaml` for all configuration settings. This provides a centralized, version-controllable way to manage your RAG system settings.
+
+#### Configuration Structure
+
+The `config.yaml` file contains all necessary settings:
+
+```yaml
+# Embedding configuration
+embedding:
+  provider: "ollama"  # ollama, openai, huggingface, bedrock, sentence_transformers
+  model: "nomic-embed-text"
+  openai:
+    api_key: "your-api-key"
+    model: "text-embedding-3-small"
+  huggingface:
+    api_key: "your-api-key"  # optional for public models
+    model: "sentence-transformers/all-MiniLM-L6-v2"
+
+# LLM configuration
+llm:
+  provider: "ollama"
+  model: "llama3.1:latest"
+  temperature: 0.1
+  max_tokens: 2048
+
+# Document processing
+documents:
+  chunk_size: 800
+  chunk_overlap: 80
+
+# Query settings
+query:
+  max_results: 5
+  similarity_threshold: 0.0
+```
+
+#### Using Configuration
+
+Once `config.yaml` is configured, you can use scripts without additional parameters:
 
 ```bash
-# 1. Set up environment variables
-export EMBEDDING_PROVIDER=ollama
-export EMBEDDING_MODEL=nomic-embed-text
-export OLLAMA_BASE_URL=http://localhost:11434
-
-# 2. Use scripts without additional parameters
+# Use scripts with config.yaml settings
 python populate_database.py --reset
 python query_data.py "Your question"
 ```
+
+#### Configuration Security
+
+- API keys are stored in `config.yaml` (not tracked by git by default)
+- Use `python embedding_manager.py setup` to securely update configuration
+- Never commit sensitive API keys to version control
 
 ## Supported File Types
 
@@ -307,9 +362,13 @@ The system will automatically detect and process all supported file types in the
 ### Common Issues
 
 1. **Ollama connection errors**: Make sure Ollama is running (`ollama serve`)
-2. **API key errors**: Verify your API keys are set correctly
+2. **API key errors**: Verify your API keys are set correctly in the `config.yaml` file
 3. **Model not found**: Ensure the model is downloaded (for Ollama) or available (for cloud providers)
 4. **Memory issues**: Use smaller models or reduce chunk size for large documents
+5. **Configuration errors**: 
+   - Check if `config.yaml` file exists: `ls -la config.yaml`
+   - Verify `config.yaml` file contents: `cat config.yaml`
+   - Update configuration: `python embedding_manager.py setup --provider your-provider`
 
 ### Getting Help
 

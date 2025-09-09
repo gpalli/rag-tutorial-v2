@@ -5,7 +5,7 @@ This script demonstrates how to use various embedding providers and models.
 """
 
 import os
-from get_embedding_function import get_embedding_function, get_embedding_function_from_env
+from get_embedding_function import get_embedding_function, get_embedding_function_from_config
 from embedding_config import EmbeddingConfig
 
 
@@ -75,21 +75,17 @@ def example_sentence_transformers_usage():
         print(f"Sentence Transformers embedding failed: {e}")
 
 
-def example_environment_config():
-    """Example using environment-based configuration."""
-    print("\n=== Environment Configuration Example ===")
-    
-    # Set environment variables
-    os.environ["EMBEDDING_PROVIDER"] = "ollama"
-    os.environ["EMBEDDING_MODEL"] = "nomic-embed-text"
+def example_config_based():
+    """Example using config.yaml-based configuration."""
+    print("\n=== Config-based Configuration Example ===")
     
     try:
-        embeddings = get_embedding_function_from_env()
+        embeddings = get_embedding_function_from_config()
         test_text = "This is a test document for embedding generation."
         result = embeddings.embed_query(test_text)
-        print(f"Environment-based configuration: {len(result)} dimensions")
+        print(f"Config-based configuration: {len(result)} dimensions")
     except Exception as e:
-        print(f"Environment-based configuration failed: {e}")
+        print(f"Config-based configuration failed: {e}")
 
 
 def list_available_models():
@@ -118,7 +114,7 @@ def main():
     example_openai_usage()
     example_huggingface_usage()
     example_sentence_transformers_usage()
-    example_environment_config()
+    example_config_based()
     
     print("\n" + "=" * 50)
     print("Examples completed!")

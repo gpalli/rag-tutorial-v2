@@ -10,3 +10,4 @@ boto3
 sentence-transformers
 torch
 transformers
+pyyaml # YAML configuration support

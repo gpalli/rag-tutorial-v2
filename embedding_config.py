@@ -165,12 +165,12 @@ class EmbeddingConfig:
             self.ollama_timeout = self.extra_params.get("ollama_timeout", 120)
             
         elif self.provider == EmbeddingProvider.OPENAI:
-            self.openai_api_key = self.extra_params.get("openai_api_key") or os.getenv("OPENAI_API_KEY")
+            self.openai_api_key = self.extra_params.get("openai_api_key")
             if not self.openai_api_key:
-                raise ValueError("OpenAI API key required. Set OPENAI_API_KEY environment variable or pass openai_api_key parameter.")
+                raise ValueError("OpenAI API key required. Set api_key in config.yaml or pass openai_api_key parameter.")
                 
         elif self.provider == EmbeddingProvider.HUGGINGFACE:
-            self.hf_api_key = self.extra_params.get("hf_api_key") or os.getenv("HUGGINGFACE_API_KEY")
+            self.hf_api_key = self.extra_params.get("hf_api_key")
             self.hf_cache_dir = self.extra_params.get("hf_cache_dir", "./cache")
             
         elif self.provider == EmbeddingProvider.BEDROCK:
